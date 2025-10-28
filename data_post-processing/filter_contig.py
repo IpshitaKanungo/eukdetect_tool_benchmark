@@ -1,18 +1,39 @@
+"""
+This script merges two TSVs on the column 'contig_id':
+  1) A stats table that includes at least: contig_id, length, aligned_bases, percent_aligned
+  2) A labels table that includes per-tool binary calls for: eukrep, tiara, kraken2
+
+It then adds a new column 'ground_truth' derived from percent_aligned:
+  - percent_aligned >= 90  -> "True"   (eukaryotic)
+  - percent_aligned <= 10  -> "False"  (non-eukaryotic)
+  - percent_aligned 11<p<89  -> "ambiguous"
+
+Inputs
+- TSV with per-contig alignment statistics (must contain 'contig_id' and 'percent_aligned';
+  typically also 'length' and 'aligned_bases').
+- TSV with per-contig tool labels (must contain 'contig_id' and columns for tools such as
+  'eukrep', 'tiara', and 'kraken2', with boolean-like values e.g. True/False).
+
+Output
+- A merged TSV with columns:
+    contig_id, length, aligned_bases, percent_aligned, eukrep, tiara, kraken2, ground_truth
+"""
+
 #!/usr/bin/env python3
 import argparse, gzip, sys, math
 from pathlib import Path
 from collections import OrderedDict
 
 def open_in(p):
-    #open files and also handles .gz
+    # Open files and also handles .gz
     return gzip.open(p, "rt") if str(p).endswith(".gz") else open(p, "rt")
 
 def norm(s):
-    #Normalize header keys for matching (case/space insensitive)
+    # Normalize header keys for matching (case/space insensitive)
     return s.strip().lower().replace(" ", "_")
 
 def pick(hmap, *cands):
-    #Return the original header name for the first matching candidate
+    # Return the original header name for the first matching candidate
     for c in cands:
         k = norm(c)
         if k in hmap:
@@ -21,8 +42,8 @@ def pick(hmap, *cands):
 
 def read_labels(path):
     """
-    Read labels TSV -> (labels_by_contig, tool_cols)
-      Expects a 'contig_id' (or similar) column.
+    Read labels TSV -> (labels_by_contig, tool_cols) generated from euk_non-euk.py
+      Expects a 'contig_id' column.
       Ignores a 'length' column if present in labels.
       All remaining columns are treated as tool columns (e.g., eukrep, tiara, kraken2).
     """
@@ -37,7 +58,7 @@ def read_labels(path):
         if contig_col is None:
             sys.exit("ERROR: labels TSV must have a contig_id/contig column.")
 
-        length_col = pick(hmap, "length")  # optional; we ignore it
+        length_col = pick(hmap, "length")  # Not considered in this case
         tool_cols = [h for h in header if h not in (contig_col, length_col)]
 
         for line in f:
@@ -56,7 +77,7 @@ def read_labels(path):
 
 def read_stats(path):
     """
-    Read percent_aligned.tsv
+    Read percent_aligned.tsv generated from alignment_percent.py
     Returns (rows list preserving order, header list, contig_col, length_col)
     """
     rows = []
@@ -83,7 +104,7 @@ def read_stats(path):
     return rows, header, contig_col, length_col
 
 def parse_float_maybe_percent(x):
-    """Parse float from '12.3' or '12.3%' strings; return NaN if not parseable."""
+    """parse string to float; return NaN if not parseable."""
     if x is None:
         return float("nan")
     s = str(x).strip()
@@ -94,12 +115,13 @@ def parse_float_maybe_percent(x):
     except ValueError:
         return float("nan")
 
+"""Parsing command-line argument"""
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("-l", "--labels", required=True) #Labels TSV (from eukrep/tiara/kraken2)
-    ap.add_argument("-s", "--stats",  required=True) #Stats TSV (has contig_id, length, percent_aligned, etc.)
-    ap.add_argument("-o", "--out",    required=True) #output TSV
-    ap.add_argument("--min-len", type=int, default=1500) #help=Minimum contig length to keep (default: 1500)
+    ap.add_argument("-l", "--labels", required=True) # Labels TSV (from eukrep/tiara/kraken2)
+    ap.add_argument("-s", "--stats",  required=True) # Stats TSV (has contig_id, length, percent_aligned, etc.)
+    ap.add_argument("-o", "--out",    required=True) # Output TSV
+    ap.add_argument("--min-len", type=int, default=1500) # Minimum contig length to keep (default: 1500)
     args = ap.parse_args()
 
     labels, tool_cols = read_labels(args.labels)
@@ -131,17 +153,18 @@ def main():
             if not cid:
                 continue
 
-            # parse length from stats
+            # Parse length from stats
             Lraw = row.get(stats_len, "0")
             try:
                 L = int(float(Lraw))
             except ValueError:
                 continue
-            if L < args.min_len:
+                # Apply minimun length filter
+                if L < args.min_len:
                 drop_len += 1
                 continue
 
-            # compute ground_truth from percent_aligned
+            # Compute ground_truth from percent_aligned
             p = parse_float_maybe_percent(row.get(percent_col, ""))
             if math.isnan(p):
                 gt = "ambiguous"
@@ -150,11 +173,11 @@ def main():
             elif p >= 90.0:
                 gt = "True"       # euk
             else:
-                gt = "ambiguous"  # 10<p<90
+                gt = "ambiguous"  # 11<p<89
 
             # LEFT JOIN behavior: keep stats row; fill missing tool labels with '-'
             lab = labels.get(cid, {})
-            drop_targets = {"kraken2", "eukrep", "tiara"}  # normalized names
+            drop_targets = {"kraken2", "eukrep", "tiara"}  # Normalized names
             should_drop = any(
                 norm(tool) in drop_targets and lab.get(tool, "-").strip() == "-"
                 for tool in tool_cols_nd
