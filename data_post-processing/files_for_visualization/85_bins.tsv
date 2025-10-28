@@ -1,0 +1,19 @@
+	dataset	quality	bin
+0	bowtie2	Almost Complete	21
+1	bowtie2	High Quality	3
+2	bowtie2	Medium Quality	8
+3	dirty_metagenome	Almost Complete	23
+4	dirty_metagenome	High Quality	3
+5	dirty_metagenome	Medium Quality	5
+6	eukrep	Almost Complete	25
+7	eukrep	High Quality	1
+8	eukrep	Medium Quality	4
+9	kraken2	Almost Complete	24
+10	kraken2	High Quality	2
+11	kraken2	Medium Quality	4
+12	metagenome	Almost Complete	23
+13	metagenome	High Quality	4
+14	metagenome	Medium Quality	3
+15	tiara	Almost Complete	25
+16	tiara	High Quality	1
+17	tiara	Medium Quality	4
