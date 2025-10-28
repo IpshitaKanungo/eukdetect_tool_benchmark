@@ -1,17 +1,28 @@
 """
-Required input: assembly fasta, Quast tsv: all_alignments-contigs.tsv 
-output : tsv file with columns :contig_id, length, aligned_bases and percent_aligned
+This script reads an assembly FASTA and QUAST's 'all_alignments-contigs.tsv',
+then produces a single TSV with one row per contig and the following columns:
+  - contig_id         : Contig identifier (header from the FASTA, up to first whitespace)
+  - length            : Contig length in bases (computed from the FASTA)
+  - aligned_bases     : Total number of bases in the contig that align (from QUAST)
+  - percent_aligned   : Fraction of the contig that aligns, as a percentage
+                        (percent_aligned = 100 * aligned_bases / length; 0 if length == 0) 
+Inputs
+- assembly FASTA (may be plain or gzipped)
+- QUAST TSV 'all_alignments-contigs.tsv' (the per-contig alignments table)
+
+Output
+- A TSV file with columns: contig_id, length, aligned_bases, percent_aligned
 """
 #!/usr/bin/env python3
 import argparse, gzip, csv, sys
 from pathlib import Path
 from collections import defaultdict
 
-#open files and also handles .gz
+# Open files and also handles .gz
 def open_in(p):
     return gzip.open(p, "rt") if str(p).endswith(".gz") else open(p, "rt")
 
-#Calculate sequence length from FASTA
+# Calculate sequence length from FASTA
 def compute_lengths_from_fasta(fasta_path):
     lengths = {}
     with open_in(fasta_path) as fh:
@@ -28,7 +39,7 @@ def compute_lengths_from_fasta(fasta_path):
             lengths[cid] = clen
     return lengths
 
-#merge overlapping contig locations and returns contig length
+# Merge overlapping contig locations and returns contig length
 def merge_len(intervals):
     if not intervals:
         return 0
@@ -48,7 +59,7 @@ def merge_len(intervals):
 def norm_header(xs):
     return [x.lstrip("\ufeff").strip().lower() for x in xs]
 
-#Search index of header column
+# Search index of header column
 def find_idx_any(header, names):
     low = norm_header(header)
     for n in names:
@@ -57,7 +68,7 @@ def find_idx_any(header, names):
             return low.index(nlow)
     return -1
 
-#Parsing QUAST all alignment tsv file anf find  contig intervals (Start S/ End E)
+# Parsing QUAST all alignment tsv file anf find  contig intervals (Start S/ End E)
 def load_quast_intervals(path):
     intervals = defaultdict(list)
     with open_in(path) as f:
@@ -94,39 +105,39 @@ def load_quast_intervals(path):
             intervals[contig].append((s, e))
     return intervals
 
-#Parsing arguments
+# Parsing arguments
 def main():
     ap = argparse.ArgumentParser()
-    #assembled fasta file
+    # Assembled fasta file
     ap.add_argument("-i","--fasta", required=True)
-    #all alignement tsv file from quast
+    # All alignement tsv file from quast
     ap.add_argument("-q","--quast-alignments", required=True)
-    #output file
+    # Output file
     ap.add_argument("-o","--out-tsv", required=True)
     args = ap.parse_args()
 
     """compute contig length from FASTA"""
     lengths = compute_lengths_from_fasta(args.fasta)
 
-    #error message if no contigs found
+    # Error message if no contigs found
     if not lengths:
         print(f"No contig lengths loaded.", file=sys.stderr)
 
-    #Parse QUAST alignment and find merged coverage per contig
+    # Parse QUAST alignment and find merged coverage per contig
     intervals = load_quast_intervals(args.quast_alignments)
     aligned_bp = {c: merge_len(iv) for c, iv in intervals.items()}
 
-    #To check existing directory
+    # To check existing directory
     Path(args.out_tsv).parent.mkdir(parents=True, exist_ok=True)
     with open(args.out_tsv, "w") as out:
-        out.write("contig_id\tlength\taligned_bases\tpercent_aligned\n") #column names
+        out.write("contig_id\tlength\taligned_bases\tpercent_aligned\n") # Column names
         for contig, L in lengths.items():
             cov = aligned_bp.get(contig, 0)
             if cov < 0:
                 cov = 0
             if cov > L:
                 cov = L
-            pct_contig = (100.0 * cov / L) if L > 0 else 0.0
+            pct_contig = (100.0 * cov / L) if L > 0 else 0.0 # Calculates percentage alignment
             out.write(f"{contig}\t{L}\t{cov}\t{pct_contig:.2f}\n")
 
 if __name__ == "__main__":
