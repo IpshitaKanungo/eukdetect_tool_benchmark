@@ -1,13 +1,29 @@
+"""
+This script merges METAWRAP bin stats for multiple datasets and adds total base pairs per bin
+Datasets include orginal metagenome, bowtie2, contaminated metagenome, Eukrep, kraken2 and Tiara
+Inputs:
+  --dataset NAME=DIR
+      Each DIR should contain:
+        - a stats table (default: metawrap_50_10_bins.stats; change via --stats-name)
+
+        - a directory of bin FASTA files (auto-detected; or set via --bins-dir-name)
+OptionS:
+  --stats-name       Filename of the stats table in each dataset directory.
+  --bins-dir-name    Name of the bins subdirectory
+Output:
+  TSV with columns: dataset, bin, completeness, contamination, total_bp
+
+"""
 #!/usr/bin/env python3
 import argparse, csv, gzip, os, sys
 from pathlib import Path
 
-# ---------- IO helpers ----------
-def open_maybe_gz(path, mode="rt"):
+# To open plain or .gz file
+def open_in(path, mode="rt"):
     return gzip.open(path, mode) if str(path).endswith(".gz") else open(path, mode, encoding=None if "b" in mode else "utf-8")
 
+# Return total no. of bp across all sequences in FASTA file
 def fasta_len(path):
-    """Return total number of bp across all sequences in a FASTA file."""
     total = 0
     with open_maybe_gz(path, "rt") as fh:
         for line in fh:
@@ -16,8 +32,8 @@ def fasta_len(path):
             total += len(line.strip())
     return total
 
+# To find bin FASTA directory
 def find_bins_dir(ds_dir, user_bins_dir=None):
-    """Pick a bins directory. Tries user override, then common names."""
     candidates = []
     if user_bins_dir:
         candidates.append(Path(user_bins_dir))
@@ -28,20 +44,20 @@ def find_bins_dir(ds_dir, user_bins_dir=None):
             return c
     return None
 
+# Find the FASTA file for a bin using extensions
 def find_bin_fasta(bins_dir, bin_name):
-    """Find the FASTA file for a bin by trying common extensions."""
     exts = (".fa", ".fasta", ".fa.gz", ".fasta.gz", ".fna", ".fna.gz")
     for ext in exts:
         p = Path(bins_dir) / f"{bin_name}{ext}"
         if p.exists():
             return p
-    # also try with any prefix/suffix pattern (fallback, slower)
+    # Search the directory for bin name with extensions
     for p in Path(bins_dir).glob(f"*{bin_name}*"):
         if p.suffix in {".fa", ".fasta", ".fna"} or str(p).endswith((".fa.gz", ".fasta.gz", ".fna.gz")):
             return p
     return None
 
-# ---------- main ----------
+
 def main():
     ap = argparse.ArgumentParser(
         description="Collect dataset, bin, completeness, contamination, total_bp from MetaWRAP outputs."
@@ -70,7 +86,7 @@ def main():
     )
     args = ap.parse_args()
 
-    # parse dataset mappings
+    # Parse NAME=DIR mappings into a dict
     datasets = {}
     for item in args.dataset:
         if "=" not in item:
@@ -86,18 +102,19 @@ def main():
     rows_out = []
     missing_fastas = []
 
+    # Process each dataset
     for name, ddir in datasets.items():
         ddir = Path(ddir)
         stats_path = ddir / args.stats_name
         if not stats_path.exists():
             sys.exit(f"[{name}] ERROR: stats file not found: {stats_path}")
-
+        # Locate bins directory
         bins_dir = find_bins_dir(ddir, args.bins_dir_name)
         if bins_dir is None:
             sys.exit(f"[{name}] ERROR: could not locate bins directory under {ddir}. "
                      f"Pass --bins-dir-name if needed.")
 
-        # read stats table
+        # Read stats table
         with open(stats_path, "r", encoding="utf-8") as fh:
             reader = csv.DictReader(fh, delimiter="\t")
             required_cols = {"bin", "completeness", "contamination"}
@@ -108,7 +125,7 @@ def main():
                 bin_name = str(row["bin"]).strip()
                 comp = row["completeness"]
                 cont = row["contamination"]
-
+                # Find bin FASTA and calculate total bp
                 fasta_path = find_bin_fasta(bins_dir, bin_name)
                 if fasta_path is None:
                     missing_fastas.append((name, bin_name, str(bins_dir)))
@@ -124,7 +141,7 @@ def main():
                     "total_bp": total_bp
                 })
 
-    # write output
+    # Write output
     outp = Path(args.out)
     outp.parent.mkdir(parents=True, exist_ok=True)
     with open(outp, "w", encoding="utf-8", newline="") as outfh:
