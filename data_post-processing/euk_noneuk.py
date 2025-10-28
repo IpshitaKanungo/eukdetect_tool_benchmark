@@ -1,6 +1,6 @@
 """
-required inputs : assembly fasta, 
-and eukaryotic and non eukaryotic contigs file for eukrep, kraken2 and tiara
+This script labels eukaryotic and non-eukaryotic contigs with a binary value for each tool
+Required inputs : assembly fasta and eukaryotic and non eukaryotic contigs file for eukrep, kraken2 and tiara
 output : tsv file with columns : contig_id, length, eukrep, kraken2, tiara
 """
 #!/usr/bin/env python3
