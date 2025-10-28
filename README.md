@@ -1,5 +1,21 @@
-Metagenomic datasets often originate from host-associated environments, where the main interest lies in studying the microbial community rather than the host itself. However, if host genomic sequences are not properly identified and excluded, they can compromise downstream analyses and lead to misleading results. Detecting and filtering out host sequences (often eukaryotic in origin) in such datasets is therefore a critical step.
-A range of computational methods is suitable for this task, including alignment-based approaches, k-mer analysis, and machine learning classifiers. While alignment to a known host genome is effective, it cannot be used when the host is unknown, unsequenced, or the sample originates from a complex environment (e.g., when the host is in symbiotic relationships with another organism, or if the sample is environmental, like soil or water). This raises the question of how well existing tools can detect eukaryotic sequences in the absence of a host genome.
-To address this, we developed a benchmarking pipeline that evaluates the ability of three tools to detect eukaryotic sequences: Kraken2, EukRep, and Tiara. The CAMI II Toy Mouse Gut metagenomic dataset was used as the test case, with host contamination introduced by synthetically generating reads from the mouse genome. Reads were assembled into contigs, after which eukaryotic sequences were detected with the selected tools, followed by binning and bin refinement. In addition, we have also separately examined Bowtie2 as a baseline alignment-based method when a high-quality host reference genome is available. 
-Finally, tool performance was assessed against a defined ground truth (contigs mapped to the host genome) in three aspects: (i) the effect of each tool on assembly quality, (ii) their accuracy in separating eukaryotic from non-eukaryotic contigs, and (iii) their influence on the quality of metagenomic bins.
-
+# Benchmarking Tools for Detecting Eukaryotic Sequences in Metagenomic Data
+Metagenomic datasets from host-associated environments often contain unwanted host DNA that can distort microbial analyses. Detecting and filtering these eukaryotic (host) sequences is therefore an essential preprocessing step.
+This project provides a **benchmarking pipeline** to evaluate how well existing tools identify eukaryotic sequences in metagenomic assemblies—especially when a reference host genome is unavailable.
+## Overview
+- **Pipeline:** `[name of the folder containing the Snakefile]`
+- **Post-processing scripts:** `[name of the folder containing the analysis scripts]`
+## Tools Evaluated
+- **Kraken2**
+- **EukRep**
+- **Tiara**
+- *(Baseline)* **Bowtie2** – used when a high-quality host reference genome is available.
+## Methodology
+1. The **CAMI II Toy Mouse Gut** dataset is used as the test case.
+2. Host contamination is simulated by adding synthetic reads from the mouse genome.
+3. Reads are assembled into contigs, classified with each tool, and subjected to binning and refinement.
+4. Performance is evaluated against ground truth host mappings in terms of:
+   - Effect on assembly quality
+   - Accuracy in distinguishing eukaryotic vs. non-eukaryotic contigs
+   - Influence on final bin quality
+## Purpose
+This pipeline helps benchmark and compare tools for detecting eukaryotic contamination in metagenomic datasets—both with and without a known host genome
