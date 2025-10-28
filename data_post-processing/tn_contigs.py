@@ -1,12 +1,20 @@
 """
-required inputs :tsv file with ground truth, assembly fasta
-output : output directory with all true negative (actual non-eukaryotic) fasta for each tool
+This script extracts per-tool FASTA files for contigs where:
+  ground_truth == False  AND  tool == False
+(i.e., "true negatives" for each tool).
+
+Input:
+  --tsv   : Path to ground truth TSV (columns: contig_id, ground_truth, eukrep, tiara, kraken2)
+  --fasta : Path to unfiltered assembly FASTA (can be .gz)
+
+Output:
+  --out-dir/{eukrep_false.fasta, tiara_false.fasta, kraken2_false.fasta}
 """
 #!/usr/bin/env python3
 import argparse, sys, gzip, io, os, csv
 from collections import defaultdict
 
-#To open file
+# To open file, also handles .gz
 def open_in(path, mode='rt'):
     if path.endswith('.gz'):
         return gzip.open(path, mode=mode)
@@ -18,18 +26,18 @@ Parsing command line arguments
 """
 def parse_args():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--tsv", required=True) #Path to ground truth TSV
-    ap.add_argument("--fasta", required=True) #Path to FASTA (trim_noneukaryotic.fa[.gz])
-    ap.add_argument("--id-col", default="contig_id") #Column with contig IDs (default: contig_id).
-    ap.add_argument("--gt-col", default="ground_truth") #Ground truth column (default: ground_truth)
-    ap.add_argument("--eukrep-col", default="eukrep") #EukRep column (default: eukrep)
-    ap.add_argument("--tiara-col", default="tiara") #Tiara column 
-    ap.add_argument("--kraken2-col", default="kraken2") #kraken column
-    ap.add_argument("--out-dir", default=".") #Output directory (default: current dir)
-    ap.add_argument("--id-whitespace-split", action="store_true") #Match FASTA IDs by splitting header at first whitespace
+    ap.add_argument("--tsv", required=True, help="Path to ground truth TSV")
+    ap.add_argument("--fasta", required=True, help="Path to assembly FASTA")
+    ap.add_argument("--id-col", default="contig_id", help="Column with contig IDs (default: contig_id).")
+    ap.add_argument("--gt-col", default="ground_truth", help="Ground truth column (default: ground_truth")
+    ap.add_argument("--eukrep-col", default="eukrep", help="EukRep column (default: eukrep)")
+    ap.add_argument("--tiara-col", default="tiara", help="Tiara column (default: tiara)")
+    ap.add_argument("--kraken2-col", default="kraken2", help="kraken column (default: kraken2)")
+    ap.add_argument("--out-dir", default=".", help="Output directory (default: current dir)")
+    ap.add_argument("--id-whitespace-split", action="store_true", help="Match FASTA IDs by splitting header at first whitespace")
     return ap.parse_args()
 
-#
+# Convert string to True/False or None
 def normalize_bool_str(s):
     if s is None:
         return None
@@ -41,7 +49,10 @@ def normalize_bool_str(s):
     # return None for ambiguous/other
     return None
 
-#load tsv with cols: all tools and ground truth
+"""
+load tsv and collect contigs where ground truth == false and tool column == false
+returns a dictionary of set of contig ids/tool
+"""
 def load_id_sets(tsv_path, id_col, gt_col, eukrep_col, tiara_col, kraken2_col):
     tsv_ids = {
         "eukrep": set(),
@@ -62,7 +73,7 @@ def load_id_sets(tsv_path, id_col, gt_col, eukrep_col, tiara_col, kraken2_col):
             euk = normalize_bool_str(row.get(eukrep_col))
             tia = normalize_bool_str(row.get(tiara_col))
             kra = normalize_bool_str(row.get(kraken2_col))
-            # Select only where ground truth is explicitly False AND tool is explicitly False
+            # Keep contig ids where ground truth is False AND tool is False
             if gt is False and euk is False:
                 tsv_ids["eukrep"].add(cid)
             if gt is False and tia is False:
@@ -71,7 +82,7 @@ def load_id_sets(tsv_path, id_col, gt_col, eukrep_col, tiara_col, kraken2_col):
                 tsv_ids["kraken2"].add(cid)
     return tsv_ids, n_rows
 
-#retrieves header and sequence from fasta file
+# Retrieves header and sequence from fasta file
 def fasta_iter(handle, split_header=True):
     header = None
     seq_chunks = []
@@ -90,7 +101,7 @@ def fasta_iter(handle, split_header=True):
     if header is not None:
         yield header, ''.join(seq_chunks)
 
-#
+# Scans the FASTA, write sequences into per tool FASTA, if the ID is selected
 def write_selected_fasta(fasta_path, out_dir, id_sets, split_header=True):
     os.makedirs(out_dir, exist_ok=True)
     out_paths = {
@@ -105,13 +116,13 @@ def write_selected_fasta(fasta_path, out_dir, id_sets, split_header=True):
     # Pre-fill missing with all; we'll remove those we find
     for k in id_sets:
         missing[k] = set(id_sets[k])
-
+    # Stream FASTA and route sequences to corresponding tools FASTA
     with open_in(fasta_path, "rt") as fh:
         for hid, seq in fasta_iter(fh, split_header=split_header):
             for tool, idset in id_sets.items():
                 if hid in idset:
                     outs[tool].write(f">{hid}\n")
-                    # wrap sequence at 60/80 columns for readability
+                    # Wrap sequence at 80 chars/line for readability
                     for i in range(0, len(seq), 80):
                         outs[tool].write(seq[i:i+80] + "\n")
                     counts_found[tool] += 1
