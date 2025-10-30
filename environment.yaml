@@ -1,0 +1,27 @@
+name: euk-benchmarking-pipeline
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - python >=3.9
+  - snakemake >=7
+  - mamba
+  - pip
+  - bowtie2
+  - samtools
+  - kraken2
+  - megahit
+  - quast
+  - trimmomatic
+  - fastqc
+
+  - pandas
+  - numpy
+  - matplotlib
+  - tqdm
+  - rich
+
+  - ipython
+  - jupyter
