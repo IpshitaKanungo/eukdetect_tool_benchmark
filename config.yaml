@@ -1,0 +1,65 @@
+# File paths
+raw_data_dir: "/path/to/raw/data" # Specify the location of raw reads
+path:
+  result_path: "results_{stamp}"
+
+folder:
+  bowtie2: bowtie2
+  megahit: megahit
+  assembly: assembly
+  binning: binning
+  refinement: refinement
+  kraken2: kraken2
+  eukrep: eukrep
+  tiara: tiara
+
+file_extensions:
+  -".fastq.gz"
+  -".fastqsanger.gz"
+  -".fq.gz"
+  -".fq"
+  -".fastq"
+  -".fastqsanger"
+
+rules:
+  # Choose the combination
+  #bowtie2: False
+  #megahit: True
+  #binning: False
+  #refinement: False
+  #kraken2: True
+  #eukrep: True
+  #tiara: True
+
+#Bowtie2
+bowtie2:
+  threads: 16
+  index: "/path/to/index" # Path to the bowtie2 index database
+
+#Megahit
+megahit:
+  threads: 16
+
+#Eukrep
+eukrep:
+  threads: 16
+
+#Kraken2
+kraken2:
+  threads: 16
+  db: "/path/to/kraken2/db" # Path to the Kraken2 database of choice
+
+#Tiara
+
+#Metawrap:
+binning:
+  threads: 32
+  binning_tools:
+    metabat2: true
+    maxbin2: true
+    concoct: true
+
+refinement:
+  threads: 32
+  completeness: 50
+  contamination: 10
