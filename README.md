@@ -2,8 +2,10 @@
 Metagenomic datasets from host-associated environments often contain unwanted host DNA that can distort microbial analyses. Detecting and filtering these eukaryotic (host) sequences is therefore an essential preprocessing step.
 This project provides a **benchmarking pipeline** to evaluate how well existing tools identify eukaryotic sequences in metagenomic assemblies—especially when a reference host genome is unavailable.
 ## Overview
-- **Pipeline:** `toolbenchmarking_pipeline`
+- **Pipeline:** `toolbenchmarking`
+        Contains Snakefile, environment.yaml, config.yaml, rules folder and envs folder
 - **Post-processing scripts:** `data_post-processing`
+        Contains analysis scripts and Jupyter notebooks (in HTML format) for benchmarking, computation and visualization
 - **Euk & Non-euk FASTA segregation scripts:** `euk_non-euk_segregation_scripts`
 ## Tools Evaluated
 - **Kraken2**
