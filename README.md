@@ -4,11 +4,11 @@ This project provides a **benchmarking pipeline** to evaluate how well existing 
 ## Overview
 - **Pipeline (Snakemake workflow)**  
 Located in the root directory — includes:  
-  - Snakefile  
-  - config.yaml  
-  - environment.yaml  
-  - envs/  
-  - rules/
+  - `Snakefile`- workflow  
+  - `config.yaml`- dataset paths and tool parameters  
+  - `environment.yaml`- conda environment  
+  - `envs/` - tool-specific environments (eukrep.yaml, tiara.yaml, metawrap.yaml)  
+  - `rules/`- Snakemake rules for each step
 - **Post-processing scripts:** `data_post-processing`  
     Contains analysis scripts and Jupyter notebooks (in HTML format) for results of benchmarking, computation and visualization
 - **Euk & Non-euk FASTA segregation scripts:** `euk_non-euk_segregation_scripts`  
