@@ -1,0 +1,10 @@
+name: metawrap-env
+channels:
+  - ursky
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - metawrap-mg=1.3.2
+  # CONCOCT warning fix for metaWRAP >=1.2
+  - blas=2.5=mkl

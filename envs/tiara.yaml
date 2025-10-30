@@ -1,0 +1,15 @@
+name: tiara
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - tiara
+  - python >=3.7,<3.10
+  - numpy
+  - biopython
+  - pytorch
+  - skorch
+  - tqdm
+  - joblib
+  - numba

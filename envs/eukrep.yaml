@@ -1,0 +1,9 @@
+name: eukrep
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - eukrep
+  - python=3.7
+  - scikit-learn==0.19.2
