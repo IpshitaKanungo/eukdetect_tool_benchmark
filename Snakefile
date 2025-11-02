@@ -56,8 +56,7 @@ BRANCHES = (["bowtie2"] if use_bowtie2 else
     ([b for b, flag in [("eukrep", use_eukrep), ("tiara", use_tiara), ("kraken2", use_kraken2)] if flag] or ["host"]))
 
 rule all:
-    input:        
-        # Conditionally include Bowtie2 logs if enabled in config
+    input:       
         (expand(f"{result}/{bowtie2_result}/logs/{{sample}}_bowtie2.log", sample=sample_basename) if use_bowtie2 else []),
         expand(f"{result}/{megahit_result}/logs/{{sample}}_{{branch}}_megahit.log", sample=sample_basename, branch=MEGAHIT_BRANCHES),
         (expand(f"{result}/{eukrep_result}/{{sample}}/{{sample}}_eukaryotic.fa", sample=sample_basename) if use_eukrep else []),
