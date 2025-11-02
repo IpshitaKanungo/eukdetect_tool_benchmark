@@ -42,7 +42,6 @@ use_eukrep  = config["rules"]["eukrep"]
 use_tiara   = config["rules"]["tiara"]
 use_kraken2 = config["rules"]["kraken2"]
 
-result = config["path"]["result_path"]
 bowtie2_result = config["folder"]["bowtie2"]
 assembly_result = config["folder"]["assembly"]
 megahit_result = config["folder"]["megahit"]
