@@ -23,13 +23,10 @@ file_extensions:
 
 rules:
   # Choose the combination
-  #bowtie2: False
-  #megahit: True
-  #binning: False
-  #refinement: False
-  #kraken2: True
-  #eukrep: True
-  #tiara: True
+  bowtie2: True
+  kraken2: False
+  eukrep: False
+  tiara: False
 
 #Bowtie2
 bowtie2:
